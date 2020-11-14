@@ -4,7 +4,7 @@ import api from '../../services/api';
 
 import logoImg from '../../assets/logo_github_explorer.svg';
 
-import { Title, Form, Repositories } from './styles';
+import { Title, Form, Repositories, Error } from './styles';
 import Repository from '../Repository';
 
 interface Repository {
@@ -17,7 +17,8 @@ interface Repository {
 }
 
 const Dashboard: React.FC = () => {
-  const [newRepo, setNewRepo] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [inputError, setInputError] = useState('');
   const [repositories, setRepositories] = useState<Repository[]>([]);
 
   async function handleAddRepository(
@@ -25,12 +26,22 @@ const Dashboard: React.FC = () => {
   ): Promise<void> {
     event.preventDefault();
 
-    const response = await api.get<Repository>(`repos/${newRepo}`);
+    if (!searchInput) {
+      setInputError('Digite o autor/nome do respositório');
+      return;
+    }
 
-    const repository = response.data;
+    try {
+      const response = await api.get<Repository>(`repos/${searchInput}`);
 
-    setRepositories([...repositories, repository]);
-    setNewRepo('');
+      const repository = response.data;
+
+      setRepositories([...repositories, repository]);
+      setSearchInput('');
+      setInputError('');
+    } catch (err) {
+      setInputError('Erro na busca por esse repositório');
+    }
   }
 
   return (
@@ -38,14 +49,16 @@ const Dashboard: React.FC = () => {
       <img src={logoImg} alt="Github Explorer" />
       <Title>Explore repositórios no Github</Title>
 
-      <Form onSubmit={handleAddRepository}>
+      <Form hasError={!!inputError} onSubmit={handleAddRepository}>
         <input
-          value={newRepo}
-          onChange={e => setNewRepo(e.target.value)}
+          value={searchInput}
+          onChange={e => setSearchInput(e.target.value)}
           placeholder="Digite o nome do repositório"
         />
         <button type="submit">Pesquisar</button>
       </Form>
+
+      {inputError && <Error>{inputError}</Error>}
 
       <Repositories>
         {repositories.map(repository => (
